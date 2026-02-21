@@ -11,9 +11,6 @@ public class Prac_1_Home {
                 
                 
         System.out.println("<title>Prac 1 Home</title>");
-        System.out.println("<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\">");
-        System.out.println("<meta http-equiv=\"Pragma\" content=\"no-cache\">");
-        System.out.println("<meta http-equiv=\"Expires\" content=\"0\">");
         
         System.out.println("</head><body>");
 

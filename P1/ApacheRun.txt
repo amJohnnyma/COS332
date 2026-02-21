@@ -15,8 +15,14 @@ http://localhost/cgi-bin/Prac_1.cgi
 
 
 // delete
-sudo rm -r /usr/lib/cgi-bin/{Prac_1.cgi,Prac_1_Right.cgi,Prac_1_Wrong.cgi,test.cgi,classes} /home/johnny/P1
+sudo rm -r /usr/lib/cgi-bin/{Prac_1.cgi,Prac_1_Right.cgi,Prac_1_Wrong.cgi,test.cgi,classes} /home/johnny/P1 /tmp/home.html /tmp/right.html /tmp/wrong.html
 
 
 //check if deleted
 ls /usr/lib/cgi-bin/ && ls /home/johnny/
+
+
+//check if html 5 compliant
+/usr/lib/cgi-bin/Prac_1.cgi > /tmp/home.html
+/usr/lib/cgi-bin/Prac_1_Right.cgi > /tmp/right.html
+/usr/lib/cgi-bin/Prac_1_Wrong.cgi > /tmp/wrong.html
