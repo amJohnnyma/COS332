@@ -1,0 +1,22 @@
+//install apache
+
+sudo apt install apache2
+sudo a2enmod cgid
+sudo a2enconf serve-cgi-bin
+sudo systemctl restart apache2
+
+//unzip
+cd / && sudo unzip -o ~/Documents/School/COS332/Practicals/P1/submission.zip
+
+
+//where the page is served
+http://localhost/cgi-bin/Prac_1.cgi
+
+
+
+// delete
+sudo rm -r /usr/lib/cgi-bin/{Prac_1.cgi,Prac_1_Right.cgi,Prac_1_Wrong.cgi,test.cgi,classes} /home/johnny/P1
+
+
+//check if deleted
+ls /usr/lib/cgi-bin/ && ls /home/johnny/
