@@ -3,6 +3,7 @@ import java.net.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.nio.file.Files;
 
 public class TelnetServer {
     private static final int PORT = 8001;
@@ -30,7 +31,26 @@ public class TelnetServer {
                 datetime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
                 withWho, description, location);
         }
+
+        // Add these getter methods to resolve the "undefined" errors
+        public String getDate() { 
+            return datetime.toLocalDate().toString(); // Returns YYYY-MM-DD
+        }
+        
+        public String getTime() { 
+            return datetime.toLocalTime().toString(); // Returns HH:MM
+        }
+        
+        public String getWho() { 
+            return withWho; 
+        }
+        
+        public String getLocation() { 
+            return location; 
+        }
     }
+
+    
 
     public static void main(String[] args) throws IOException {
         loadAppointments();
@@ -45,12 +65,49 @@ public class TelnetServer {
         }
     }
 
-    private static void loadAppointments() {
-        // implement simple file read → sharedAppointments
+    public static synchronized void loadAppointments() {
+        sharedAppointments.clear(); 
+        File file = new File(DB_FILE);
+        if (!file.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("\\|");
+                if (parts.length == 4) {
+                    // Reconstruct LocalDateTime from the stored Date and Time strings
+                    LocalDate date = LocalDate.parse(parts[0]);
+                    LocalTime time = LocalTime.parse(parts[1]);
+                    
+                    Appointment appt = new Appointment(
+                        LocalDateTime.of(date, time), 
+                        parts[2].trim(), 
+                        "Description", // Adjust if you add a 5th column for desc
+                        parts[3].trim()
+                    );
+                    sharedAppointments.add(appt);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading: " + e.getMessage());
+        }
     }
 
-    private static void saveAppointments() {
-        // implement simple file write
+    public static synchronized void saveAppointments() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(DB_FILE))) {
+            for (Appointment appt : sharedAppointments) {
+                // Now matches the parts.length == 4 logic in load
+                writer.printf("%s|%s|%s|%s%n",
+                    appt.getDate(),
+                    appt.getTime(),
+                    appt.getWho(),
+                    appt.getLocation()
+                );
+            }
+            writer.flush(); 
+        } catch (IOException e) {
+            System.err.println("Save error: " + e.getMessage());
+        }
     }
 
     static class ClientHandler implements Runnable {
@@ -127,7 +184,6 @@ public class TelnetServer {
             // Very naive parsing — improve for real submission
             // Expected: 2026-03-15 14:30 "Dr Smith" "Follow-up" "Room 12"
             out.println("\u001B[90m(add not fully implemented yet)\u001B[0m");
-
         }
     }
 }
