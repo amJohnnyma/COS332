@@ -2,7 +2,9 @@ import java.io.*;
 import java.net.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.regex.*;
 
 public class TelnetServer {
     private static final int PORT = 8001;
@@ -26,9 +28,11 @@ public class TelnetServer {
 
         @Override
         public String toString() {
-            return String.format("%s  %-20s  %s  (%s)",
-                datetime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
-                withWho, description, location);
+            return String.format("%s  %-22s  %-30s  (%s)",
+                    datetime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    withWho,
+                    description,
+                    location);
         }
     }
 
@@ -68,7 +72,6 @@ public class TelnetServer {
                 out = new PrintWriter(socket.getOutputStream(), true);
                 in  = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-                // Very simple ANSI welcome
                 out.print("\u001B[2J");           // clear screen
                 out.print("\u001B[1;1H");         // top left
                 out.println("\u001B[1;34m=== Appointment Book ===\u001B[0m");
@@ -77,7 +80,7 @@ public class TelnetServer {
 
                 String line;
                 while ((line = in.readLine()) != null) {
-                    // Echo what user typed (very important for this assignment!)
+                    // Echo what user typed
                     out.println("\u001B[1;32m> " + line + "\u001B[0m");
 
                     String cmd = line.trim().toLowerCase();
@@ -123,11 +126,73 @@ public class TelnetServer {
             }
         }
 
-        private void addAppointment(String args) {
-            // Very naive parsing — improve for real submission
-            // Expected: 2026-03-15 14:30 "Dr Smith" "Follow-up" "Room 12"
-            out.println("\u001B[90m(add not fully implemented yet)\u001B[0m");
+        private void deleteAppointment(String input)
+        {
+        }
 
+        private void addAppointment(String input) {
+            // ^              start of string
+            // (\S+)          date (non-whitespace)
+            // \s+            one or more spaces
+            // (\S+)          time (non-whitespace)
+            // \s+            
+            // "([^"]*)"      quoted person (captures inside quotes, allows spaces)
+            // \s+            
+            // "([^"]*)"      quoted description
+            // (?:\s+         non-capturing group for optional location
+            //   "([^"]*)"    quoted location
+            // )?             optional
+            // \s*$           optional trailing whitespace, end of string
+
+            String regex = "^(\\S+)\\s+(\\S+)\\s+\"([^\"]*)\"\\s+\"([^\"]*)\"(?:\\s+\"([^\"]*)\")?\\s*$";
+
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(input.trim());
+
+            if (!matcher.matches()) {
+                out.println("\u001B[31mInvalid format. Use:");
+                out.println("add YYYY-MM-DD HH:MM \"Person name\" \"Description can have spaces\" [\"Location optional\"]\u001B[0m");
+                out.println("Example:");
+                out.println("add 2025-10-15 14:30 \"Dr Nel\" \"Annual checkup\" \"Room 4B\"\u001B[0m");
+                return;
+            }
+
+            try {
+                String dateStr   = matcher.group(1);
+                String timeStr   = matcher.group(2);
+                String person    = matcher.group(3).trim();     // inside first quotes
+                String desc      = matcher.group(4).trim();     // inside second quotes
+                String location  = matcher.group(5) != null 
+                    ? matcher.group(5).trim() 
+                    : "unspecified";
+
+                if (person.isEmpty() || desc.isEmpty()) {
+                    out.println("\u001B[31mPerson and description cannot be empty.\u001B[0m");
+                    return;
+                }
+
+                LocalDate date = LocalDate.parse(dateStr);
+                LocalTime time = LocalTime.parse(timeStr);
+                LocalDateTime dt = LocalDateTime.of(date, time);
+
+                Appointment appt = new Appointment(dt, person, desc, location);
+                sharedAppointments.add(appt);
+
+                out.println("\u001B[32mAdded: " + appt.toString() + "\u001B[0m");
+                // saveAppointments();
+            } catch (DateTimeParseException e) {
+                out.println("\u001B[31mInvalid date or time format. Use YYYY-MM-DD HH:MM\u001B[0m");
+            } catch (Exception e) {
+                out.println("\u001B[31mError: " + e.getMessage() + "\u001B[0m");
+            }
         }
     }
 }
+
+/*
+   add 2025-04-15 09:30 "Dr Nel" "Annual checkup" "Room 4B"
+   add 2026-01-20 14:00 "Prof van Wyk" "Thesis discussion" "Online"
+   add 2025-12-24 10:15 "Santa Claus" "Gift delivery planning" "North Pole"
+   add 2025-03-03 08:45 "Dentist" "Teeth cleaning" 
+   add 2026-06-30 16:30 "Client XYZ" "Project kickoff" "Pretoria office"
+   */
