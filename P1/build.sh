@@ -17,7 +17,7 @@ chmod +x "$CGI_DIR/"*.cgi
 
 echo "Build complete. Output in dist/"
 
-# --- Create submission archive with absolute paths ---
+# Create submission archive with absolute path
 echo "Creating submission archive..."
 
 # Staging directory that mirrors the absolute paths

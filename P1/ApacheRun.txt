@@ -8,10 +8,14 @@ sudo systemctl restart apache2
 //unzip
 cd / && sudo unzip -o ~/Documents/School/COS332/Practicals/P1/submission.zip
 
+//for demo
+cd / && sudo unzip -o ~/Downloads/submission.zip
 
 //where the page is served
 http://localhost/cgi-bin/Prac_1.cgi
 
+// source for apache
+https://httpd.apache.org/docs/current/howto/cgi.html
 
 
 // delete
