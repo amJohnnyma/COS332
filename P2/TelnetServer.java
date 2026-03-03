@@ -58,16 +58,15 @@ public class TelnetServer {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split("\\|");
-                if (parts.length == 4) {
-                    // Reconstruct LocalDateTime from the stored Date and Time strings
+                if (parts.length == 5) {
                     LocalDate date = LocalDate.parse(parts[0]);
                     LocalTime time = LocalTime.parse(parts[1]);
                     
                     Appointment appt = new Appointment(
                         LocalDateTime.of(date, time), 
                         parts[2].trim(), 
-                        "Description", // Adjust if you add a 5th column for desc
-                        parts[3].trim()
+                        parts[3].trim(),
+                        parts[4].trim()
                     );
                     sharedAppointments.add(appt);
                 }
@@ -80,11 +79,11 @@ public class TelnetServer {
     public static synchronized void saveAppointments() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(DB_FILE))) {
             for (Appointment appt : sharedAppointments) {
-                // Now matches the parts.length == 4 logic in load
-                writer.printf("%s|%s|%s|%s%n",
+                writer.printf("%s|%s|%s|%s|%s%n",
                     appt.datetime.toLocalDate().toString(),
                     appt.datetime.toLocalTime().toString(),
                     appt.withWho,
+                    appt.description,
                     appt.location
                 );
             }
