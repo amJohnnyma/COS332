@@ -48,12 +48,50 @@ public class TelnetServer {
         }
     }
 
-    private static void loadAppointments() {
-        // implement simple file read → sharedAppointments
+
+    public static synchronized void loadAppointments() {
+        sharedAppointments.clear(); 
+        File file = new File(DB_FILE);
+        if (!file.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("\\|");
+                if (parts.length == 4) {
+                    // Reconstruct LocalDateTime from the stored Date and Time strings
+                    LocalDate date = LocalDate.parse(parts[0]);
+                    LocalTime time = LocalTime.parse(parts[1]);
+                    
+                    Appointment appt = new Appointment(
+                        LocalDateTime.of(date, time), 
+                        parts[2].trim(), 
+                        "Description", // Adjust if you add a 5th column for desc
+                        parts[3].trim()
+                    );
+                    sharedAppointments.add(appt);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading: " + e.getMessage());
+        }
     }
 
-    private static void saveAppointments() {
-        // implement simple file write
+    public static synchronized void saveAppointments() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(DB_FILE))) {
+            for (Appointment appt : sharedAppointments) {
+                // Now matches the parts.length == 4 logic in load
+                writer.printf("%s|%s|%s|%s%n",
+                    appt.datetime.toLocalDate().toString(),
+                    appt.datetime.toLocalTime().toString(),
+                    appt.withWho,
+                    appt.location
+                );
+            }
+            writer.flush(); 
+        } catch (IOException e) {
+            System.err.println("Save error: " + e.getMessage());
+        }
     }
 
     static class ClientHandler implements Runnable {
