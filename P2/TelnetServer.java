@@ -10,7 +10,6 @@ public class TelnetServer {
     private static final int PORT = 8001;
     private static final String DB_FILE = "appointments.txt";
 
-    // In real assignment: decide if appointments are shared or per-user
     private static List<Appointment> sharedAppointments = new ArrayList<>();
 
     static class Appointment {
@@ -85,6 +84,7 @@ public class TelnetServer {
 
                     String cmd = line.trim().toLowerCase();
                     if (cmd.startsWith("quit") || cmd.startsWith("exit")) {
+                        saveAppointments();
                         break;
                     } else if (cmd.equals("help")) {
                         showHelp();
@@ -92,7 +92,7 @@ public class TelnetServer {
                         listAppointments();
                     } else if (cmd.startsWith("add ")) {
                         addAppointment(line.substring(4).trim());
-                    }                 else if (cmd.startsWith("delete ")) {
+                    } else if (cmd.startsWith("delete ")) {
                         deleteAppointment(line.substring(7).trim());  // strips "delete " → passes "3"
                     } else if (cmd.startsWith("search ")) {
                         searchAppointment(line.substring(7).trim());  // strips "search " → passes "Dr Nel"
@@ -241,7 +241,7 @@ public class TelnetServer {
                 sharedAppointments.add(appt);
 
                 out.println("\u001B[32mAdded: " + appt.toString() + "\u001B[0m");
-                // saveAppointments();
+                saveAppointments();
             } catch (DateTimeParseException e) {
                 out.println("\u001B[31mInvalid date or time format. Use YYYY-MM-DD HH:MM\u001B[0m");
             } catch (Exception e) {
@@ -251,10 +251,3 @@ public class TelnetServer {
     }
 }
 
-/*
-   add 2025-04-15 09:30 "Dr Nel" "Annual checkup" "Room 4B"
-   add 2026-01-20 14:00 "Prof van Wyk" "Thesis discussion" "Online"
-   add 2025-12-24 10:15 "Santa Claus" "Gift delivery planning" "North Pole"
-   add 2025-03-03 08:45 "Dentist" "Teeth cleaning" 
-   add 2026-06-30 16:30 "Client XYZ" "Project kickoff" "Pretoria office"
-   */
