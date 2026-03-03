@@ -62,3 +62,30 @@ sudo rm -r /usr/lib/cgi-bin/{Prac_1.cgi,Prac_1_Right.cgi,Prac_1_Wrong.cgi,test.c
 ```bash
 ls /usr/lib/cgi-bin/ && ls $HOME/
 ```
+
+
+# Prac 2
+
+## Prerequisites
+- Java installed
+- Telnet installed
+
+---
+
+## Build and Deploy Server
+```
+cd P2
+javac TelnetServer.java
+java TelnetServer
+```
+
+---
+
+## Connect Client
+```
+telnet localhost 8001
+```
+
+---
+
+
