@@ -92,10 +92,10 @@ public class TelnetServer {
                         listAppointments();
                     } else if (cmd.startsWith("add ")) {
                         addAppointment(line.substring(4).trim());
-                    } else if (cmd.startsWith("delete ")) {
-                        // parse number etc.
-                    } else {
-                        out.println("Unknown command. Type 'help'");
+                    }                 else if (cmd.startsWith("delete ")) {
+                        deleteAppointment(line.substring(7).trim());  // strips "delete " → passes "3"
+                    } else if (cmd.startsWith("search ")) {
+                        searchAppointment(line.substring(7).trim());  // strips "search " → passes "Dr Nel"
                     }
                     out.flush();
                 }
@@ -111,6 +111,7 @@ public class TelnetServer {
             out.println("  list                - show all appointments");
             out.println("  add YYYY-MM-DD HH:MM \"Person\" \"What\" \"Where\"");
             out.println("  delete <number>");
+            out.println("  search \"Person\"");
             out.println("  quit / exit");
             out.println("\u001B[0m");
         }
@@ -126,8 +127,69 @@ public class TelnetServer {
             }
         }
 
-        private void deleteAppointment(String input)
-        {
+        private void deleteAppointment(String input) {
+            // input is expected to be just the number (1-based index)
+            input = input.trim();
+
+            if (input.isEmpty()) {
+                out.println("\u001B[31mInvalid format. Use:");
+                out.println("delete <number>");
+                out.println("Example:");
+                out.println("delete 3\u001B[0m");
+                return;
+            }
+
+            try {
+                int index = Integer.parseInt(input) - 1; // convert to 0-based
+
+                if (index < 0 || index >= sharedAppointments.size()) {
+                    out.println("\u001B[31mNo appointment at position " + (index + 1) + ". "
+                            + "There are " + sharedAppointments.size() + " appointment(s).\u001B[0m");
+                    return;
+                }
+
+                Appointment removed = sharedAppointments.remove(index);
+                out.println("\u001B[32mDeleted: " + removed.toString() + "\u001B[0m");
+                // saveAppointments();
+
+            } catch (NumberFormatException e) {
+                out.println("\u001B[31mInvalid number: \"" + input + "\". Please provide a valid integer.\u001B[0m");
+            } catch (Exception e) {
+                out.println("\u001B[31mError: " + e.getMessage() + "\u001B[0m");
+            }
+        }
+
+        private void searchAppointment(String input) {
+            // input is the name to search for (partial, case-insensitive)
+            input = input.trim();
+
+            if (input.isEmpty()) {
+                out.println("\u001B[31mInvalid format. Use:");
+                out.println("search <name>");
+                out.println("Example:");
+                out.println("search Dr Nel\u001B[0m");
+                return;
+            }
+
+            final String query = input.toLowerCase();
+
+            List<Appointment> results = new ArrayList<>();
+            for (int i = 0; i < sharedAppointments.size(); i++) {
+                Appointment appt = sharedAppointments.get(i);
+                if (appt.withWho.toLowerCase().contains(query)) {
+                    results.add(appt);
+                }
+            }
+
+            if (results.isEmpty()) {
+                out.println("\u001B[33mNo appointments found for: \"" + input + "\"\u001B[0m");
+                return;
+            }
+
+            out.println("\u001B[32mFound " + results.size() + " appointment(s) for \"" + input + "\":\u001B[0m");
+            for (int i = 0; i < results.size(); i++) {
+                out.println("  " + (i + 1) + ". " + results.get(i).toString());
+            }
         }
 
         private void addAppointment(String input) {
