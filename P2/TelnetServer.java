@@ -2,14 +2,14 @@ import java.io.*;
 import java.net.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.nio.file.Files;
+import java.util.regex.*;
 
 public class TelnetServer {
     private static final int PORT = 8001;
     private static final String DB_FILE = "appointments.txt";
 
-    // In real assignment: decide if appointments are shared or per-user
     private static List<Appointment> sharedAppointments = new ArrayList<>();
 
     static class Appointment {
@@ -27,30 +27,13 @@ public class TelnetServer {
 
         @Override
         public String toString() {
-            return String.format("%s  %-20s  %s  (%s)",
-                datetime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
-                withWho, description, location);
-        }
-
-        // Add these getter methods to resolve the "undefined" errors
-        public String getDate() { 
-            return datetime.toLocalDate().toString(); // Returns YYYY-MM-DD
-        }
-        
-        public String getTime() { 
-            return datetime.toLocalTime().toString(); // Returns HH:MM
-        }
-        
-        public String getWho() { 
-            return withWho; 
-        }
-        
-        public String getLocation() { 
-            return location; 
+            return String.format("%s  %-22s  %-30s  (%s)",
+                    datetime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    withWho,
+                    description,
+                    location);
         }
     }
-
-    
 
     public static void main(String[] args) throws IOException {
         loadAppointments();
@@ -64,6 +47,7 @@ public class TelnetServer {
             }
         }
     }
+
 
     public static synchronized void loadAppointments() {
         sharedAppointments.clear(); 
@@ -98,10 +82,10 @@ public class TelnetServer {
             for (Appointment appt : sharedAppointments) {
                 // Now matches the parts.length == 4 logic in load
                 writer.printf("%s|%s|%s|%s%n",
-                    appt.getDate(),
-                    appt.getTime(),
-                    appt.getWho(),
-                    appt.getLocation()
+                    appt.datetime.toLocalDate().toString(),
+                    appt.datetime.toLocalTime().toString(),
+                    appt.withWho,
+                    appt.location
                 );
             }
             writer.flush(); 
@@ -125,7 +109,6 @@ public class TelnetServer {
                 out = new PrintWriter(socket.getOutputStream(), true);
                 in  = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-                // Very simple ANSI welcome
                 out.print("\u001B[2J");           // clear screen
                 out.print("\u001B[1;1H");         // top left
                 out.println("\u001B[1;34m=== Appointment Book ===\u001B[0m");
@@ -134,11 +117,12 @@ public class TelnetServer {
 
                 String line;
                 while ((line = in.readLine()) != null) {
-                    // Echo what user typed (very important for this assignment!)
+                    // Echo what user typed
                     out.println("\u001B[1;32m> " + line + "\u001B[0m");
 
                     String cmd = line.trim().toLowerCase();
                     if (cmd.startsWith("quit") || cmd.startsWith("exit")) {
+                        saveAppointments();
                         break;
                     } else if (cmd.equals("help")) {
                         showHelp();
@@ -147,9 +131,9 @@ public class TelnetServer {
                     } else if (cmd.startsWith("add ")) {
                         addAppointment(line.substring(4).trim());
                     } else if (cmd.startsWith("delete ")) {
-                        // parse number etc.
-                    } else {
-                        out.println("Unknown command. Type 'help'");
+                        deleteAppointment(line.substring(7).trim());  // strips "delete " → passes "3"
+                    } else if (cmd.startsWith("search ")) {
+                        searchAppointment(line.substring(7).trim());  // strips "search " → passes "Dr Nel"
                     }
                     out.flush();
                 }
@@ -165,6 +149,7 @@ public class TelnetServer {
             out.println("  list                - show all appointments");
             out.println("  add YYYY-MM-DD HH:MM \"Person\" \"What\" \"Where\"");
             out.println("  delete <number>");
+            out.println("  search \"Person\"");
             out.println("  quit / exit");
             out.println("\u001B[0m");
         }
@@ -180,10 +165,127 @@ public class TelnetServer {
             }
         }
 
-        private void addAppointment(String args) {
-            // Very naive parsing — improve for real submission
-            // Expected: 2026-03-15 14:30 "Dr Smith" "Follow-up" "Room 12"
-            out.println("\u001B[90m(add not fully implemented yet)\u001B[0m");
+        private void deleteAppointment(String input) {
+            // input is expected to be just the number (1-based index)
+            input = input.trim();
+
+            if (input.isEmpty()) {
+                out.println("\u001B[31mInvalid format. Use:");
+                out.println("delete <number>");
+                out.println("Example:");
+                out.println("delete 3\u001B[0m");
+                return;
+            }
+
+            try {
+                int index = Integer.parseInt(input) - 1; // convert to 0-based
+
+                if (index < 0 || index >= sharedAppointments.size()) {
+                    out.println("\u001B[31mNo appointment at position " + (index + 1) + ". "
+                            + "There are " + sharedAppointments.size() + " appointment(s).\u001B[0m");
+                    return;
+                }
+
+                Appointment removed = sharedAppointments.remove(index);
+                out.println("\u001B[32mDeleted: " + removed.toString() + "\u001B[0m");
+                // saveAppointments();
+
+            } catch (NumberFormatException e) {
+                out.println("\u001B[31mInvalid number: \"" + input + "\". Please provide a valid integer.\u001B[0m");
+            } catch (Exception e) {
+                out.println("\u001B[31mError: " + e.getMessage() + "\u001B[0m");
+            }
+        }
+
+        private void searchAppointment(String input) {
+            // input is the name to search for (partial, case-insensitive)
+            input = input.trim();
+
+            if (input.isEmpty()) {
+                out.println("\u001B[31mInvalid format. Use:");
+                out.println("search <name>");
+                out.println("Example:");
+                out.println("search Dr Nel\u001B[0m");
+                return;
+            }
+
+            final String query = input.toLowerCase();
+
+            List<Appointment> results = new ArrayList<>();
+            for (int i = 0; i < sharedAppointments.size(); i++) {
+                Appointment appt = sharedAppointments.get(i);
+                if (appt.withWho.toLowerCase().contains(query)) {
+                    results.add(appt);
+                }
+            }
+
+            if (results.isEmpty()) {
+                out.println("\u001B[33mNo appointments found for: \"" + input + "\"\u001B[0m");
+                return;
+            }
+
+            out.println("\u001B[32mFound " + results.size() + " appointment(s) for \"" + input + "\":\u001B[0m");
+            for (int i = 0; i < results.size(); i++) {
+                out.println("  " + (i + 1) + ". " + results.get(i).toString());
+            }
+        }
+
+        private void addAppointment(String input) {
+            // ^              start of string
+            // (\S+)          date (non-whitespace)
+            // \s+            one or more spaces
+            // (\S+)          time (non-whitespace)
+            // \s+            
+            // "([^"]*)"      quoted person (captures inside quotes, allows spaces)
+            // \s+            
+            // "([^"]*)"      quoted description
+            // (?:\s+         non-capturing group for optional location
+            //   "([^"]*)"    quoted location
+            // )?             optional
+            // \s*$           optional trailing whitespace, end of string
+
+            String regex = "^(\\S+)\\s+(\\S+)\\s+\"([^\"]*)\"\\s+\"([^\"]*)\"(?:\\s+\"([^\"]*)\")?\\s*$";
+
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(input.trim());
+
+            if (!matcher.matches()) {
+                out.println("\u001B[31mInvalid format. Use:");
+                out.println("add YYYY-MM-DD HH:MM \"Person name\" \"Description can have spaces\" [\"Location optional\"]\u001B[0m");
+                out.println("Example:");
+                out.println("add 2025-10-15 14:30 \"Dr Nel\" \"Annual checkup\" \"Room 4B\"\u001B[0m");
+                return;
+            }
+
+            try {
+                String dateStr   = matcher.group(1);
+                String timeStr   = matcher.group(2);
+                String person    = matcher.group(3).trim();     // inside first quotes
+                String desc      = matcher.group(4).trim();     // inside second quotes
+                String location  = matcher.group(5) != null 
+                    ? matcher.group(5).trim() 
+                    : "unspecified";
+
+                if (person.isEmpty() || desc.isEmpty()) {
+                    out.println("\u001B[31mPerson and description cannot be empty.\u001B[0m");
+                    return;
+                }
+
+                LocalDate date = LocalDate.parse(dateStr);
+                LocalTime time = LocalTime.parse(timeStr);
+                LocalDateTime dt = LocalDateTime.of(date, time);
+
+                Appointment appt = new Appointment(dt, person, desc, location);
+                sharedAppointments.add(appt);
+
+                out.println("\u001B[32mAdded: " + appt.toString() + "\u001B[0m");
+                saveAppointments();
+            } catch (DateTimeParseException e) {
+                out.println("\u001B[31mInvalid date or time format. Use YYYY-MM-DD HH:MM\u001B[0m");
+            } catch (Exception e) {
+                out.println("\u001B[31mError: " + e.getMessage() + "\u001B[0m");
+            }
         }
     }
 }
+
