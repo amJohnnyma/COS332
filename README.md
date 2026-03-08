@@ -89,3 +89,28 @@ telnet localhost 8001
 ---
 
 
+# Prac 3
+
+## Prerequisites
+- Java installed
+
+---
+
+## Build and Deploy Server
+```
+cd P2
+javac WorldClockServer.java
+java WorldClockServer
+```
+
+---
+
+## Connect Client
+In your favourite browser open
+```
+http://127.0.0.1:55555/
+```
+
+---
+
+
