@@ -77,18 +77,32 @@ public class WorldClockServer
         }
     }
 
-    static Map<String, String> getCities()
-    {
-        Map<String, String> cities = new LinkedHashMap<>();
-        cities.put("London",    "Europe/London");
-        cities.put("New_York",  "America/New_York");
-        cities.put("Tokyo",     "Asia/Tokyo");
-        cities.put("Sydney",    "Australia/Sydney");
-        cities.put("Dubai",     "Asia/Dubai");
-        cities.put("Nairobi",   "Africa/Nairobi");
 
-        return cities;
-    }
+	static Map<String, String> getCities()
+	{
+	    Map<String, String> cities = new LinkedHashMap<>();
+
+	    cities.put("London",      "Europe/London");
+	    cities.put("New_York",    "America/New_York");
+	    cities.put("Tokyo",       "Asia/Tokyo");
+	    cities.put("Sydney",      "Australia/Sydney");
+	    cities.put("Dubai",       "Asia/Dubai");
+	    cities.put("Nairobi",     "Africa/Nairobi");
+	    cities.put("Jakarta",     "Asia/Jakarta");
+	    cities.put("Dhaka",       "Asia/Dhaka");
+	    cities.put("Delhi",       "Asia/Kolkata");
+	    cities.put("Shanghai",    "Asia/Shanghai");
+	    cities.put("Mumbai",      "Asia/Kolkata");
+	    cities.put("Sao_Paulo",   "America/Sao_Paulo");
+	    cities.put("Mexico_City", "America/Mexico_City");
+	    cities.put("Beijing",     "Asia/Shanghai");
+	    cities.put("Osaka",       "Asia/Tokyo");
+	    cities.put("Los_Angeles", "America/Los_Angeles");
+	    cities.put("Paris",       "Europe/Paris");
+	    cities.put("Singapore",   "Asia/Singapore");
+
+	    return cities;
+	}
 
     static String buildPage(String path)
     {
