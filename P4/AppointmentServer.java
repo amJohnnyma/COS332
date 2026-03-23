@@ -69,7 +69,7 @@ public class AppointmentServer {
         } catch (Exception e) { return ""; }
     }
 
-    // Manual URL Decoding (The "extra mile" for marks)
+    // Manual URL Decoding 
     private static String decodeURL(String input) {
         return input.replace("+", " ")
                     .replace("%3A", ":")
@@ -86,7 +86,7 @@ public class AppointmentServer {
             html.append("<p style='color: green;'><b>Status:</b> ").append(status).append("</p>");
         }
 
-        // --- UPDATED FORM WITH DATE ---
+        // FORM WITH DATE 
         html.append("<fieldset><legend>New Appointment</legend>");
         html.append("<form method='get' action='/add'>");
         html.append("Date: <input type='text' name='d' size='8' placeholder='MM-DD'> ");
@@ -95,7 +95,7 @@ public class AppointmentServer {
         html.append("<input type='submit' value='Add'>");
         html.append("</form></fieldset>");
         
-        // --- SEARCH ---
+        // SEARCH
         html.append("<form method='get' action='/search'>");
         html.append("Search: <input type='text' name='n'> <input type='submit' value='Find'>");
         html.append("</form>");
