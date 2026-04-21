@@ -1,0 +1,69 @@
+INSTRUCTIONS: HOW TO RUN AND DEMONSTRATE THE MAIL SYSTEM
+
+1. FILE DESCRIPTIONS
+-------------------------------------------------------------------------------
+SERVER-SIDE (The Infrastructure)
+- Mailbox.java: The central shared memory. It stores email messages and 
+  synchronizes access so the SMTP and POP3 servers don't clash.
+- SmtpServer.java: Handles incoming mail. It listens for the DATA command, 
+  parses the subject, and saves the message to the Mailbox.
+- Pop3Server.java: Handles mail retrieval. It allows clients to check 
+  their inbox, read headers (TOP), and mark items for deletion (DELE).
+- TestServer.java: The "Master" server program. It starts both the SMTP 
+  and POP3 services on separate threads so the system is fully operational.
+
+CLIENT-SIDE (The Applications)
+- VacationProgram.java: The automated bot. It polls the server every 30 
+  seconds. If it finds a new email with "prac7" in the subject, it 
+  automatically sends an SMTP reply to the sender.
+- VacationRes.java: The manual cleanup tool. It lets you see who sent 
+  you mail and how big the messages are, then lets you delete unwanted 
+  emails without downloading the full content.
+
+
+2. EXECUTION 
+-------------------------------------------------------------------------------
+STEP 1: COMPILE THE SYSTEM
+Open your terminal/command prompt in the source folder and run:
+    javac *.java
+
+STEP 2: START THE SERVER
+Run the TestServer. Note: Ports 25 and 110 usually require admin rights.
+    sudo java TestServer
+(The terminal will show: "=== Test Mail Server Starting ===")
+
+STEP 3: START THE VACATION BOT
+Open a SECOND terminal window and run:
+    java VacationProgram
+(It will say: "Vacation Program started. Checking every 30 seconds...")
+
+
+3. DEMONSTRATION 
+-------------------------------------------------------------------------------
+SCENARIO A: TESTING THE AUTO-REPLY
+1. Open a THIRD terminal. We will pretend to be an outside sender using Telnet:
+    telnet localhost 25
+2. Type the following SMTP handshake (press enter after each line):
+    HELO localhost
+    MAIL FROM:<test@example.com>
+    RCPT TO:<your_username@example.com>
+    DATA
+    Subject: prac7
+    
+    This is a test message for the practical.
+    .
+    QUIT
+3. Observe:
+   - The TestServer terminal shows: "[SMTP] Stored | From: test@example.com"
+   - Wait ~30 seconds. The VacationProgram terminal will show: 
+     "Replied to: test@example.com"
+
+SCENARIO B: TESTING THE CLEANUP TOOL
+1. In the same (or a new) terminal, run the management tool:
+    java VacationRes
+2. The program will print a table of all messages currently in the Mailbox.
+3. When prompted ("Enter message numbers to DELETE"), type a number (e.g., 1).
+4. Type QUIT.
+5. Verification: Run 'java VacationRes' again. You will see the message 
+   number you chose is now gone, proving the POP3 "Update" state worked.
+-------------------------------------------------------------------------------
